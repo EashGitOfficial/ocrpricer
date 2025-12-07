@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Florida Pricing - Location-Based</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .location-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .location-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .location-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .location-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .location-status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-location {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            margin-bottom: 10px;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .price {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .info-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏪 Florida Pricing Engine</h1>
+        <p class="subtitle">Get real-time prices based on your location</p>
+        
+        <div class="location-section">
+            <label>📍 Location</label>
+            <button class="btn-location" id="getLocationBtn" onclick="getUserLocation()">
+                📍 Use My Current Location
+            </button>
+            <div id="locationStatus"></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="product">Product Name</label>
+            <input type="text" id="product" placeholder="e.g., Coca Cola, Lays Chips, Chocolate" />
+        </div>
+        
+        <button id="checkPriceBtn" onclick="checkPrice()">Check Price</button>
+        
+        <div id="result" class="result">
+            <h3>Price Information</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        let userLocation = null;
+
+        function getUserLocation() {
+            const statusDiv = document.getElementById('locationStatus');
+            const btn = document.getElementById('getLocationBtn');
+            
+            if (!navigator.geolocation) {
+                statusDiv.innerHTML = '<div class="location-status error">Geolocation is not supported by your browser</div>';
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '📍 Getting location...';
+            statusDiv.innerHTML = '<div class="location-status info">Requesting location access...</div>';
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    userLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    
+                    // Validate if in Florida (rough check)
+                    if (userLocation.latitude < 24 || userLocation.latitude > 31 || 
+                        userLocation.longitude > -80 || userLocation.longitude < -87) {
+                        statusDiv.innerHTML = '<div class="location-status error">Location is outside Florida. Please use a Florida location.</div>';
+                        userLocation = null;
+                        btn.disabled = false;
+                        btn.textContent = '📍 Use My Current Location';
+                        return;
+                    }
+                    
+                    statusDiv.innerHTML = `
+                        <div class="location-status success">
+                            ✅ Location found!<br>
+                            Latitude: ${userLocation.latitude.toFixed(6)}<br>
+                            Longitude: ${userLocation.longitude.toFixed(6)}
+                        </div>
+                    `;
+                    btn.disabled = false;
+                    btn.textContent = '✅ Location Set';
+                },
+                function(error) {
+                    let errorMsg = 'Unknown error occurred';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg = 'Location access denied. Please allow location access and try again.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg = 'Location information unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg = 'Location request timed out.';
+                            break;
+                    }
+                    statusDiv.innerHTML = `<div class="location-status error">❌ ${errorMsg}</div>`;
+                    btn.disabled = false;
+                    btn.textContent = '📍 Use My Current Location';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        async function checkPrice() {
+            const product = document.getElementById('product').value.trim();
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            const checkBtn = document.getElementById('checkPriceBtn');
+            
+            if (!product) {
+                alert('Please enter a product name');
+                return;
+            }
+            
+            if (!userLocation) {
+                alert('Please allow location access first');
+                return;
+            }
+            
+            checkBtn.disabled = true;
+            checkBtn.textContent = 'Checking...';
+            resultDiv.classList.add('show');
+            resultContent.innerHTML = '<div class="loading"><div class="spinner"></div><p>Fetching price data...</p></div>';
+            
+            try {
+                const url = `${API_BASE_URL}/api/price/check`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product: product,
+                        latitude: userLocation.latitude,
+                        longitude: userLocation.longitude
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultContent.innerHTML = `
+                        <div class="price">$${data.price}</div>
+                        <div class="info-item">
+                            <span class="info-label">Product:</span>
+                            <span class="info-value">${data.product}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">City:</span>
+                            <span class="info-value">${data.city}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Location Type:</span>
+                            <span class="info-value">${data.location_type} Cost Area</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Regional Multiplier:</span>
+                            <span class="info-value">${data.multiplier}x</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">State:</span>
+                            <span class="info-value">${data.state}</span>
+                        </div>
+                    `;
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="location-status error">
+                            ❌ ${data.error || 'Failed to get price data'}<br>
+                            ${data.suggestion || ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `
+                    <div class="location-status error">
+                        ❌ Error: ${error.message}<br>
+                        Make sure the API server is running on ${API_BASE_URL}
+                    </div>
+                `;
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Check Price';
+            }
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('product').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPrice();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
