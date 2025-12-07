@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
     ca-certificates \
+    dnsutils \
+    iputils-ping \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
